@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campus Pulse | Intelligent Student Noticeboard</title>
+  <!-- Tailwind CSS CDN with plugins -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Phosphor Icons -->
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css"/>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.9; transform: scale(1.01); }
+    }
+    .pulse-urgent {
+      animation: pulse-subtle 2.5s infinite ease-in-out;
+    }
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="h-full text-slate-800 antialiased flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
+
+  <!-- Top Navigation Header -->
+  <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      <!-- Logo & Tagline -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-200">
+          <i class="ph-bold ph-broadcast text-xl"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-700">Campus Pulse</h1>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">AI Powered</span>
+          </div>
+          <p class="text-xs text-slate-500 hidden sm:block">Never miss a deadline again</p>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- AI Weekly Digest Button -->
+        <button id="btn-weekly-digest" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-200 transition-all hover:shadow-sm active:scale-95">
+          <i class="ph-bold ph-sparkle text-violet-600"></i>
+          <span>What do I need to know this week?</span>
+        </button>
+
+        <!-- Smart Paste / Add Notice Button -->
+        <button id="btn-open-modal" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-all shadow-sm shadow-indigo-300 hover:shadow-md hover:shadow-indigo-300 active:scale-95">
+          <i class="ph-bold ph-plus-circle text-lg"></i>
+          <span class="hidden sm:inline">Add Notice / Smart Paste</span>
+          <span class="sm:hidden">Add</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- 1. Today's Focus Highlight Banner -->
+    <section id="todays-focus-banner" class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-600 p-0.5 shadow-lg shadow-indigo-100">
+      <div class="rounded-[15px] bg-white p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div class="flex items-start sm:items-center gap-3.5">
+          <div class="w-11 h-11 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+            <i class="ph-fill ph-fire text-2xl animate-bounce"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">Immediate Action</span>
+              <span id="current-date-badge" class="text-xs font-medium text-slate-500"></span>
+            </div>
+            <h2 id="focus-title" class="text-base sm:text-lg font-bold text-slate-900 mt-0.5">Today's Focus: Scanning active alerts...</h2>
+            <p id="focus-desc" class="text-xs sm:text-sm text-slate-600">Keep track of items expiring today or tomorrow.</p>
+          </div>
+        </div>
+
+        <!-- Focus action / counter badge -->
+        <div id="focus-quick-actions" class="flex items-center gap-2 w-full md:w-auto justify-end">
+          <div id="urgent-count-badge" class="px-3.5 py-1.5 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-xs sm:text-sm font-semibold flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+            <span id="urgent-count-text">0 urgent notices</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Smart Conflict Detector Alert Banner -->
+    <section id="conflict-detector-banner" class="hidden rounded-2xl bg-gradient-to-r from-rose-500/10 via-amber-500/10 to-orange-500/10 border-2 border-rose-300 p-4 shadow-sm">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div class="flex items-start gap-3">
+          <div class="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-rose-200">
+            <i class="ph-bold ph-warning-octagon text-xl animate-pulse"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] font-black uppercase tracking-wider bg-rose-600 text-white px-2 py-0.5 rounded">Smart Conflict Detector</span>
+              <span id="conflict-banner-count" class="text-xs font-semibold text-rose-800">Overlap Detected</span>
+            </div>
+            <p id="conflict-banner-msg" class="text-xs sm:text-sm font-medium text-slate-800 mt-0.5 leading-snug"></p>
+          </div>
+        </div>
+        <button id="btn-view-conflict-dates" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-sm transition-all whitespace-nowrap active:scale-95 shrink-0">
+          Filter Conflicting Days
+        </button>
+      </div>
+    </section>
+
+    <!-- 2. Controls: Search, Filter Chips & View Mode Switcher -->
+    <section class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-4">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <!-- Search bar -->
+        <div class="relative flex-1 max-w-md">
+          <i class="ph ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
+          <input type="text" id="search-input" placeholder="Search notices, keywords, venues, titles..."
+                 class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all bg-slate-50/50 hover:bg-white">
+          <button id="clear-search" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+            <i class="ph ph-x-circle text-base"></i>
+          </button>
+        </div>
+
+        <!-- View Switcher (List vs Calendar) -->
+        <div class="inline-flex items-center p-1 bg-slate-100 rounded-xl self-start md:self-auto border border-slate-200">
+          <button id="btn-view-list" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-800 shadow-sm transition-all">
+            <i class="ph-bold ph-list-dashes"></i>
+            <span>List View</span>
+          </button>
+          <button id="btn-view-calendar" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:text-slate-900 transition-all">
+            <i class="ph-bold ph-calendar"></i>
+            <span>Calendar View</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Category Filter Chips -->
+      <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+        <span class="text-slate-400 font-medium mr-1 flex items-center gap-1">
+          <i class="ph ph-funnel"></i> Filter:
+        </span>
+        <button class="filter-chip active px-3 py-1.5 rounded-xl font-medium border transition-all" data-category="ALL">
+          All Notices
+        </button>
+        <button class="filter-chip px-3 py-1.5 rounded-xl font-medium border transition-all" data-category="Academic">
+          📚 Academic
+        </button>
+        <button class="filter-chip px-3 py-1.5 rounded-xl font-medium border transition-all" data-category="Placement">
+          💼 Placement
+        </button>
+        <button class="filter-chip px-3 py-1.5 rounded-xl font-medium border transition-all" data-category="Cultural">
+          🎭 Cultural
+        </button>
+        <button class="filter-chip px-3 py-1.5 rounded-xl font-medium border transition-all" data-category="Sports">
+          🏆 Sports
+        </button>
+        <button class="filter-chip px-3 py-1.5 rounded-xl font-medium border transition-all" data-category="Urgent">
+          🚨 Urgent Only
+        </button>
+        <button class="filter-chip px-3 py-1.5 rounded-xl font-medium border transition-all text-rose-700 bg-rose-50 border-rose-200 hover:bg-rose-100" data-category="CONFLICTS">
+          ⚠️ Conflicts (<span id="chip-conflict-count">0</span>)
+        </button>
+      </div>
+    </section>
+
+    <!-- 3. Dynamic Main View Area -->
+    <!-- List View Container -->
+    <section id="list-view" class="space-y-4">
+      <div class="flex items-center justify-between text-xs text-slate-500 px-1">
+        <span id="results-count">Showing 4 notices</span>
+        <div class="flex items-center gap-2">
+          <span>Sort by:</span>
+          <select id="sort-select" class="bg-transparent border-0 font-medium text-slate-700 focus:outline-none cursor-pointer">
+            <option value="date-asc">Date (Earliest First)</option>
+            <option value="date-desc">Date (Latest First)</option>
+            <option value="urgency">Urgency / Priority</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Card Grid -->
+      <div id="notices-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Notice cards rendered by JS -->
+      </div>
+
+      <!-- Empty State -->
+      <div id="empty-state" class="hidden text-center py-16 bg-white rounded-2xl border border-dashed border-slate-300 p-8">
+        <div class="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-500 mx-auto flex items-center justify-center text-3xl mb-3">
+          <i class="ph ph-calendar-x"></i>
+        </div>
+        <h3 class="text-base font-bold text-slate-800">No notices found</h3>
+        <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">There are no notices matching your active search or category filters. Try switching filters or paste a new message.</p>
+        <button id="btn-empty-add" class="mt-4 px-4 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-xl hover:bg-indigo-700 transition-all shadow-sm">
+          + Add Notice Now
+        </button>
+      </div>
+    </section>
+
+    <!-- Calendar View Container (Hidden by default) -->
+    <section id="calendar-view" class="hidden bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <h2 id="calendar-month-year" class="text-lg font-bold text-slate-900">October 2026</h2>
+          <span class="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">Monthly Outlook</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button id="cal-prev" class="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition-all">
+            <i class="ph ph-caret-left"></i>
+          </button>
+          <button id="cal-today" class="px-3 py-1 text-xs font-semibold rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition-all">
+            Today
+          </button>
+          <button id="cal-next" class="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition-all">
+            <i class="ph ph-caret-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Calendar Days Header -->
+      <div class="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-slate-400 py-1 border-b border-slate-100">
+        <div>Sun</div>
+        <div>Mon</div>
+        <div>Tue</div>
+        <div>Wed</div>
+        <div>Thu</div>
+        <div>Fri</div>
+        <div>Sat</div>
+      </div>
+
+      <!-- Calendar Days Grid -->
+      <div id="calendar-grid" class="grid grid-cols-7 gap-1">
+        <!-- Rendered via JS -->
+      </div>
+      
+      <!-- Calendar Selected Day Detail Panel -->
+      <div id="calendar-day-details" class="pt-4 border-t border-slate-100">
+        <h4 id="calendar-selected-date-text" class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Events on this day</h4>
+        <div id="calendar-selected-events" class="space-y-2">
+          <p class="text-xs text-slate-400 italic">Select any highlighted date on the calendar above to preview details.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 4. Smart Input Parser Modal -->
+  <div id="modal-smart-parser" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-100 overflow-hidden transform transition-all duration-200">
+      
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 to-indigo-50/30">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm shadow-indigo-300">
+            <i class="ph-bold ph-magic-wand text-xl"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Smart Notice Parser</h3>
+            <p class="text-xs text-slate-500">Paste any WhatsApp forward or email — AI does the rest</p>
+          </div>
+        </div>
+        <button id="modal-close" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-all">
+          <i class="ph-bold ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-5 space-y-4">
+        
+        <!-- Input Section -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Unstructured Notice Text</label>
+            <!-- Sample text injection pills for quick testing -->
+            <div class="flex items-center gap-1 text-[11px]">
+              <span class="text-slate-400">Load sample:</span>
+              <button class="btn-sample-paste text-indigo-600 hover:underline font-medium" data-sample="hackathon">Hackathon</button>
+              <span class="text-slate-300">•</span>
+              <button class="btn-sample-paste text-indigo-600 hover:underline font-medium" data-sample="exam">Exam Prep</button>
+              <span class="text-slate-300">•</span>
+              <button class="btn-sample-paste text-indigo-600 hover:underline font-medium" data-sample="placement">Drive</button>
+            </div>
+          </div>
+          <div class="relative">
+            <textarea id="raw-notice-input" rows="5"
+                      placeholder="e.g. '🔥 *URGENT ALL 3rd YEARS* Final submission for Cloud Computing Project is tomorrow at 5:00 PM in Lab 402. Don't be late!'"
+                      class="w-full p-3.5 text-xs sm:text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-mono bg-slate-50/40 leading-relaxed"></textarea>
+          </div>
+          
+          <div class="mt-2.5 flex items-center justify-between">
+            <span class="text-[11px] text-slate-400">Supports emojis, asterisks, multi-line WhatsApp forwards, and dates.</span>
+            <button id="btn-parse-ai" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-all active:scale-95">
+              <i class="ph-bold ph-cpu"></i>
+              <span>Parse with AI</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- AI Parsing Spinner / Status -->
+        <div id="ai-loading" class="hidden py-4 text-center space-y-2 border border-indigo-100 rounded-xl bg-indigo-50/50">
+          <div class="inline-block animate-spin rounded-full h-6 w-6 border-2 border-indigo-600 border-t-transparent"></div>
+          <p class="text-xs font-semibold text-indigo-700">Simulating AI Extraction (Named Entity & Date Recognition)...</p>
+        </div>
+
+        <!-- AI Extraction Result Preview Card -->
+        <div id="preview-container" class="hidden border border-indigo-200/80 rounded-xl bg-gradient-to-br from-indigo-50/30 to-violet-50/20 p-4 space-y-3">
+          <div class="flex items-center justify-between pb-2 border-b border-indigo-100">
+            <div class="flex items-center gap-1.5 text-xs font-bold text-indigo-900">
+              <i class="ph-fill ph-check-circle text-emerald-500 text-base"></i>
+              <span>AI Extracted Details (Editable)</span>
+            </div>
+            <span id="preview-confidence" class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">98% Confidence</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div class="sm:col-span-2">
+              <label class="font-semibold text-slate-700 block mb-1">Notice Title</label>
+              <input type="text" id="preview-title" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white font-medium text-slate-900 focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <div>
+              <label class="font-semibold text-slate-700 block mb-1">Date</label>
+              <input type="date" id="preview-date" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white font-medium text-slate-900 focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <div>
+              <label class="font-semibold text-slate-700 block mb-1">Time</label>
+              <input type="text" id="preview-time" placeholder="e.g. 10:00 AM" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white font-medium text-slate-900 focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <div>
+              <label class="font-semibold text-slate-700 block mb-1">Venue / Location</label>
+              <input type="text" id="preview-venue" placeholder="e.g. Main Auditorium" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white font-medium text-slate-900 focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <div>
+              <label class="font-semibold text-slate-700 block mb-1">Category</label>
+              <select id="preview-category" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white font-medium text-slate-900 focus:outline-none focus:border-indigo-500">
+                <option value="Academic">Academic</option>
+                <option value="Cultural">Cultural</option>
+                <option value="Sports">Sports</option>
+                <option value="Placement">Placement</option>
+                <option value="Urgent">Urgent / General</option>
+              </select>
+            </div>
+
+            <div class="sm:col-span-2">
+              <label class="font-semibold text-slate-700 block mb-1">Description / Summary</label>
+              <textarea id="preview-desc" rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white font-medium text-slate-900 focus:outline-none focus:border-indigo-500"></textarea>
+            </div>
+          </div>
+
+          <!-- Live Modal Conflict Warning Box -->
+          <div id="modal-conflict-warning" class="hidden p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-900 space-y-1">
+            <div class="flex items-center gap-1.5 font-bold text-rose-700">
+              <i class="ph-bold ph-warning-octagon text-base"></i>
+              <span>Smart Conflict Alert: Same-Day Overlap!</span>
+            </div>
+            <p id="modal-conflict-text" class="text-slate-700 leading-snug"></p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2">
+        <button id="modal-cancel" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 transition-all">
+          Cancel
+        </button>
+        <button id="modal-save" disabled class="px-5 py-2 text-xs font-bold bg-indigo-600 text-white rounded-xl shadow-sm hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+          Save Notice to Dashboard
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 5. AI Weekly Digest Modal -->
+  <div id="modal-digest" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-100 overflow-hidden">
+      
+      <!-- Digest Header -->
+      <div class="p-5 bg-gradient-to-r from-violet-600 to-indigo-700 text-white flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-xl">
+            <i class="ph-bold ph-newspaper-clipping"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold">Your AI Weekly Briefing</h3>
+            <p class="text-xs text-violet-200" id="digest-week-label">Curated for week of Oct 31, 2026</p>
+          </div>
+        </div>
+        <button id="modal-digest-close" class="p-1.5 text-white/80 hover:text-white rounded-lg hover:bg-white/10 transition-all">
+          <i class="ph-bold ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Digest Content -->
+      <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+        
+        <!-- Summary Stats Banner -->
+        <div class="grid grid-cols-3 gap-2 text-center p-3 rounded-xl bg-violet-50 border border-violet-100">
+          <div>
+            <div id="stat-urgent" class="text-lg font-black text-rose-600">0</div>
+            <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Urgent Items</div>
+          </div>
+          <div>
+            <div id="stat-week" class="text-lg font-black text-indigo-600">0</div>
+            <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">This Week</div>
+          </div>
+          <div>
+            <div id="stat-total" class="text-lg font-black text-slate-800">0</div>
+            <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Active</div>
+          </div>
+        </div>
+
+        <!-- Formatted Digest Narrative -->
+        <div id="digest-narrative" class="space-y-3 text-xs sm:text-sm text-slate-700 leading-relaxed font-sans">
+          <!-- Populated by JS -->
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2.5">
+          <i class="ph-fill ph-lightbulb text-amber-600 text-base mt-0.5 shrink-0"></i>
+          <span><strong>AI Pro-tip:</strong> Focus on priority registration deadlines first. Items marked "Urgent" expire within 48 hours!</span>
+        </div>
+      </div>
+
+      <!-- Digest Footer -->
+      <div class="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+        <button id="btn-copy-digest" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-all">
+          <i class="ph ph-copy"></i>
+          <span id="copy-text">Copy to Clipboard</span>
+        </button>
+        <button id="modal-digest-dismiss" class="px-4 py-2 text-xs font-bold bg-violet-600 hover:bg-violet-700 text-white rounded-xl shadow-sm transition-all">
+          Got it, let's crush it!
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 hidden bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 text-xs transition-all transform translate-y-2 opacity-0">
+    <i class="ph-fill ph-check-circle text-emerald-400 text-base"></i>
+    <span id="toast-message">Notice saved successfully</span>
+  </div>
+
+  <!-- Script Logic -->
+  <script>
+    // System reference date based on current context: October 31, 2026
+    const REFERENCE_DATE = new Date('2026-10-31T11:28:12');
+
+    // Initial Mock Samples as per requirement
+    const INITIAL_NOTICES = [
+      {
+        id: 'notice-1',
+        title: 'Google & Microsoft Campus Placement Drive Registration',
+        rawText: '🚨 *ATTENTION FINAL YEAR B.TECH / MCA STUDENTS* 🚨\nCampus Placement recruitment drive for Software Engineering and Cloud Associate roles. Registrations strictly close today at 11:59 PM! Shortlisted students must assemble at the Placement Auditorium tomorrow morning at 09:00 AM with 3 hard copies of their resume and College ID.',
+        date: '2026-10-31',
+        time: '11:59 PM',
+        venue: 'Placement Auditorium & Portal',
+        category: 'Placement',
+        summary: 'Final year recruitment drive registration deadline; mandatory resumes for shortlisted candidates at placement hall.'
+      },
+      {
+        id: 'notice-2',
+        title: 'HackCampus 2026 - 36hr National Hackathon',
+        rawText: 'Calling all creators and hackers! 🚀 HackCampus 2026 submission deadline for Round 1 project abstract is tomorrow Nov 1, 2026 at 5:00 PM. Team size 2-4 members. Cash prizes worth ₹2,50,000 + cloud credits. Pitching at New Incubation Center.',
+        date: '2026-11-01',
+        time: '05:00 PM',
+        venue: 'New Incubation Center / Lab 3',
+        category: 'Academic',
+        summary: 'Round 1 abstract submission for the flagship 36-hour hackathon with cash prizes and cloud credits.'
+      },
+      {
+        id: 'notice-2b',
+        title: 'Robotics Club Internal Design Pitch & Demo',
+        rawText: '🤖 Attention members: Robotics Society design team demo is on Nov 1, 2026 at 04:30 PM in Mechatronics Lab. All sub-teams must submit CAD files before the session starts.',
+        date: '2026-11-01',
+        time: '04:30 PM',
+        venue: 'Mechatronics Lab',
+        category: 'Academic',
+        summary: 'Robotics sub-team hardware and CAD review session.'
+      },
+      {
+        id: 'notice-3',
+        title: 'Inter-Departmental Autumn Cricket League Finals',
+        rawText: '🏏 THE FINAL SHOWDOWN! Mechanical Warriors vs CS Coders in the Autumn Cricket Championship! Venue: University Sports Complex Grounds. Date: Nov 4, 2026 at 03:30 PM. All students and faculty are invited to cheer for their branch. Free refreshments for attendees!',
+        date: '2026-11-04',
+        time: '03:30 PM',
+        venue: 'University Sports Complex Grounds',
+        category: 'Sports',
+        summary: 'Final match between Mechanical and CS departments with refreshments and open attendance.'
+      },
+      {
+        id: 'notice-4',
+        title: 'Oasis Cultural Fest: Band Night & DJ Auditions',
+        rawText: 'Music Society Announcement: 🎸 Auditions for the main stage of Oasis Cultural Fest are happening on Friday, Nov 6, 2026 from 4:00 PM to 8:00 PM at Student Activity Center (SAC Amphitheatre). Register your acoustic or rock band with the cultural sec.',
+        date: '2026-11-06',
+        time: '04:00 PM',
+        venue: 'Student Activity Center (SAC Amphitheatre)',
+        category: 'Cultural',
+        summary: 'Live band and solo musical auditions for the annual Oasis campus cultural festival.'
+      }
+    ];
+
+    // State Management
+    let notices = [];
+    try {
+      const stored = localStorage.getItem('campus_pulse_notices');
+      notices = stored ? JSON.parse(stored) : INITIAL_NOTICES;
+    } catch (e) {
+      notices = INITIAL_NOTICES;
+    }
+
+    let activeFilter = 'ALL';
+    let searchQuery = '';
+    let sortMode = 'date-asc';
+    let currentView = 'list'; // 'list' or 'calendar'
+    let calendarDate = new Date(REFERENCE_DATE); // for calendar navigation
+
+    // DOM Elements
+    const noticesGrid = document.getElementById('notices-grid');
+    const emptyState = document.getElementById('empty-state');
+    const resultsCount = document.getElementById('results-count');
+    const searchInput = document.getElementById('search-input');
+    const clearSearchBtn = document.getElementById('clear-search');
+    const filterChips = document.querySelectorAll('.filter-chip');
+    const sortSelect = document.getElementById('sort-select');
+
+    const focusTitle = document.getElementById('focus-title');
+    const focusDesc = document.getElementById('focus-desc');
+    const urgentCountText = document.getElementById('urgent-count-text');
+    const currentDateBadge = document.getElementById('current-date-badge');
+
+    const btnViewList = document.getElementById('btn-view-list');
+    const btnViewCalendar = document.getElementById('btn-view-calendar');
+    const listView = document.getElementById('list-view');
+    const calendarView = document.getElementById('calendar-view');
+
+    // Modal elements
+    const btnOpenModal = document.getElementById('btn-open-modal');
+    const btnEmptyAdd = document.getElementById('btn-empty-add');
+    const modalSmartParser = document.getElementById('modal-smart-parser');
+    const modalClose = document.getElementById('modal-close');
+    const modalCancel = document.getElementById('modal-cancel');
+    const rawNoticeInput = document.getElementById('raw-notice-input');
+    const btnParseAI = document.getElementById('btn-parse-ai');
+    const aiLoading = document.getElementById('ai-loading');
+    const previewContainer = document.getElementById('preview-container');
+    const modalSave = document.getElementById('modal-save');
+
+    // Preview fields
+    const previewTitle = document.getElementById('preview-title');
+    const previewDate = document.getElementById('preview-date');
+    const previewTime = document.getElementById('preview-time');
+    const previewVenue = document.getElementById('preview-venue');
+    const previewCategory = document.getElementById('preview-category');
+    const previewDesc = document.getElementById('preview-desc');
+
+    // Digest modal
+    const btnWeeklyDigest = document.getElementById('btn-weekly-digest');
+    const modalDigest = document.getElementById('modal-digest');
+    const modalDigestClose = document.getElementById('modal-digest-close');
+    const modalDigestDismiss = document.getElementById('modal-digest-dismiss');
+    const digestNarrative = document.getElementById('digest-narrative');
+    const btnCopyDigest = document.getElementById('btn-copy-digest');
+
+    // Toast
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toast-message');
+
+    // Initialize UI
+    function init() {
+      // Format current date badge
+      const options = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
+      currentDateBadge.textContent = `Today: ${REFERENCE_DATE.toLocaleDateString('en-US', options)}`;
+
+      setupEventListeners();
+      renderDashboard();
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem('campus_pulse_notices', JSON.stringify(notices));
+      } catch (e) {
+        console.error('Storage error', e);
+      }
+    }
+
+    function showToast(msg) {
+      toastMessage.textContent = msg;
+      toast.classList.remove('hidden');
+      setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      }, 10);
+      setTimeout(() => {
+        toast.classList.add('translate-y-2', 'opacity-0');
+        setTimeout(() => toast.classList.add('hidden'), 300);
+      }, 3000);
+    }
+
+    // Evaluate item dates against reference date: Urgent, Upcoming, Expired
+    function getNoticeStatus(dateString) {
+      if (!dateString) return { status: 'Upcoming', badgeColor: 'bg-blue-50 text-blue-700 border-blue-200', label: 'Upcoming' };
+      
+      const itemDate = new Date(dateString + 'T23:59:59');
+      const todayStart = new Date(REFERENCE_DATE.getFullYear(), REFERENCE_DATE.getMonth(), REFERENCE_DATE.getDate());
+      const itemDayStart = new Date(itemDate.getFullYear(), itemDate.getMonth(), itemDate.getDate());
+      
+      const diffTime = itemDayStart - todayStart;
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays < 0) {
+        return { status: 'Expired', badgeColor: 'bg-slate-100 text-slate-500 border-slate-200', label: 'Expired' };
+      } else if (diffDays === 0) {
+        return { status: 'Urgent', badgeColor: 'bg-rose-100 text-rose-700 border-rose-200 font-bold', label: 'Due Today' };
+      } else if (diffDays === 1) {
+        return { status: 'Urgent', badgeColor: 'bg-amber-100 text-amber-800 border-amber-200 font-bold', label: 'Due Tomorrow' };
+      } else {
+        return { status: 'Upcoming', badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: `In ${diffDays} days` };
+      }
+    }
+
+    function getCategoryBadge(cat) {
+      switch (cat) {
+        case 'Academic':
+          return '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">📚 Academic</span>';
+        case 'Placement':
+          return '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">💼 Placement</span>';
+        case 'Cultural':
+          return '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">🎭 Cultural</span>';
+        case 'Sports':
+          return '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">🏆 Sports</span>';
+        default:
+          return '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">🚨 Urgent</span>';
+      }
+    }
+
+    // Smart Conflict Detection Utility
+    function detectDateConflicts() {
+      const dateMap = {};
+      notices.forEach(n => {
+        if (!n.date) return;
+        if (!dateMap[n.date]) dateMap[n.date] = [];
+        dateMap[n.date].push(n);
+      });
+
+      const conflictingDates = {};
+      let totalConflictedEvents = 0;
+
+      Object.keys(dateMap).forEach(d => {
+        if (dateMap[d].length > 1) {
+          conflictingDates[d] = dateMap[d];
+          totalConflictedEvents += dateMap[d].length;
+        }
+      });
+
+      return {
+        conflictingDates,
+        hasConflicts: Object.keys(conflictingDates).length > 0,
+        conflictDatesList: Object.keys(conflictingDates),
+        totalConflictedEvents
+      };
+    }
+
+    function checkConflictsForDate(dateStr, excludeId = null) {
+      if (!dateStr) return [];
+      return notices.filter(n => n.date === dateStr && n.id !== excludeId);
+    }
+
+    function renderDashboard() {
+      renderFocusBanner();
+      renderConflictBanner();
+      if (currentView === 'list') {
+        renderNoticeCards();
+      } else {
+        renderCalendar();
+      }
+    }
+
+    // Render Conflict Detector Alert Banner
+    function renderConflictBanner() {
+      const conflictData = detectDateConflicts();
+      const banner = document.getElementById('conflict-detector-banner');
+      const bannerMsg = document.getElementById('conflict-banner-msg');
+      const chipCount = document.getElementById('chip-conflict-count');
+      const bannerCount = document.getElementById('conflict-banner-count');
+
+      chipCount.textContent = conflictData.conflictDatesList.length;
+
+      if (conflictData.hasConflicts) {
+        banner.classList.remove('hidden');
+        bannerCount.textContent = `${conflictData.conflictDatesList.length} Day(s) Overlapping`;
+        
+        const dateNames = conflictData.conflictDatesList.map(d => {
+          const formatted = formatCardDate(d);
+          const count = conflictData.conflictingDates[d].length;
+          return `<strong>${formatted}</strong> (${count} events)`;
+        }).join(', ');
+
+        bannerMsg.innerHTML = `You have multiple commitments scheduled on the same date: ${dateNames}. Pay close attention to avoid clashing timings!`;
+      } else {
+        banner.classList.add('hidden');
+      }
+    }
+
+    // Render Today's Focus Banner
+    function renderFocusBanner() {
+      const urgentItems = notices.filter(n => {
+        const statusObj = getNoticeStatus(n.date);
+        return statusObj.status === 'Urgent';
+      });
+
+      urgentCountText.textContent = `${urgentItems.length} urgent notices`;
+
+      if (urgentItems.length > 0) {
+        const top = urgentItems[0];
+        const statusObj = getNoticeStatus(top.date);
+        focusTitle.textContent = `Today's Focus: ${top.title}`;
+        focusDesc.innerHTML = `<span class="font-semibold text-rose-600">${statusObj.label}</span> • Venue: ${top.venue || 'TBA'} • Time: ${top.time || 'All Day'}.`;
+      } else {
+        focusTitle.textContent = "Today's Focus: You're all caught up!";
+        focusDesc.textContent = "No urgent deadlines today or tomorrow. Review upcoming events below.";
+      }
+    }
+
+    // Filter and Sort notices
+    function getFilteredNotices() {
+      const conflictData = detectDateConflicts();
+
+      return notices.filter(item => {
+        // Category filter
+        if (activeFilter === 'Urgent') {
+          const status = getNoticeStatus(item.date).status;
+          if (status !== 'Urgent') return false;
+        } else if (activeFilter === 'CONFLICTS') {
+          if (!conflictData.conflictDatesList.includes(item.date)) return false;
+        } else if (activeFilter !== 'ALL' && item.category !== activeFilter) {
+          return false;
+        }
+
+        // Search query
+        if (searchQuery.trim() !== '') {
+          const q = searchQuery.toLowerCase();
+          const matchTitle = item.title?.toLowerCase().includes(q);
+          const matchVenue = item.venue?.toLowerCase().includes(q);
+          const matchDesc = item.summary?.toLowerCase().includes(q) || item.rawText?.toLowerCase().includes(q);
+          const matchCategory = item.category?.toLowerCase().includes(q);
+          if (!matchTitle && !matchVenue && !matchDesc && !matchCategory) return false;
+        }
+
+        return true;
+      }).sort((a, b) => {
+        if (sortMode === 'date-asc') {
+          return (a.date || '').localeCompare(b.date || '');
+        } else if (sortMode === 'date-desc') {
+          return (b.date || '').localeCompare(a.date || '');
+        } else if (sortMode === 'urgency') {
+          const score = (n) => {
+            const st = getNoticeStatus(n.date).status;
+            if (st === 'Urgent') return 1;
+            if (st === 'Upcoming') return 2;
+            return 3;
+          };
+          return score(a) - score(b);
+        }
+        return 0;
+      });
+    }
+
+    // Render List View Cards
+    function renderNoticeCards() {
+      const filtered = getFilteredNotices();
+      resultsCount.textContent = `Showing ${filtered.length} notice${filtered.length === 1 ? '' : 's'}`;
+
+      if (filtered.length === 0) {
+        noticesGrid.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      noticesGrid.innerHTML = filtered.map(item => {
+        const status = getNoticeStatus(item.date);
+        const isUrgent = status.status === 'Urgent';
+        const conflicts = checkConflictsForDate(item.date, item.id);
+        const hasConflict = conflicts.length > 0;
+
+        return `
+          <div class="bg-white rounded-2xl border ${hasConflict ? 'border-amber-400 ring-2 ring-amber-400/25 shadow-md' : isUrgent ? 'border-rose-300 ring-2 ring-rose-400/20 shadow-md' : 'border-slate-200 shadow-sm'} p-5 flex flex-col justify-between hover:shadow-md transition-all group relative overflow-hidden">
+            ${hasConflict ? '<div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-500 via-rose-500 to-amber-500"></div>' : isUrgent ? '<div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-rose-500"></div>' : ''}
+            
+            <div class="space-y-3">
+              <!-- Top Row: Category, Conflict Tag & Status Badge -->
+              <div class="flex items-center justify-between gap-1.5 flex-wrap">
+                <div class="flex items-center gap-1.5">
+                  ${getCategoryBadge(item.category)}
+                  ${hasConflict ? `
+                    <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300" title="Same-day clash with ${conflicts.length} other notice(s)">
+                      <i class="ph-bold ph-warning"></i> Conflict (${conflicts.length + 1} events)
+                    </span>
+                  ` : ''}
+                </div>
+                <span class="text-xs px-2.5 py-0.5 rounded-full font-semibold border ${status.badgeColor}">
+                  ${status.label}
+                </span>
+              </div>
+
+              <!-- Title -->
+              <h3 class="text-base font-bold text-slate-900 leading-snug group-hover:text-indigo-600 transition-colors">
+                ${escapeHtml(item.title)}
+              </h3>
+
+              <!-- Same Day Conflict Inline Alert Box -->
+              ${hasConflict ? `
+                <div class="p-2.5 rounded-xl bg-amber-50/80 border border-amber-200 text-xs text-amber-900 space-y-1">
+                  <div class="flex items-center gap-1 text-[11px] font-bold text-amber-800">
+                    <i class="ph-bold ph-git-merge text-amber-600"></i>
+                    <span>Same-day Schedule Conflict:</span>
+                  </div>
+                  <p class="text-[11px] text-slate-700 leading-tight">
+                    Also happening on this day: <strong>${escapeHtml(conflicts.map(c => c.title + (c.time ? ` at ${c.time}` : '')).join('; '))}</strong>.
+                  </p>
+                </div>
+              ` : ''}
+
+              <!-- Meta info: Date, Time, Venue -->
+              <div class="space-y-1.5 text-xs text-slate-600 pt-1">
+                <div class="flex items-center gap-2">
+                  <i class="ph-bold ph-calendar text-indigo-500 text-sm shrink-0"></i>
+                  <span>${formatCardDate(item.date)}</span>
+                  ${item.time ? `<span class="text-slate-300">•</span><i class="ph-bold ph-clock text-slate-400 text-sm shrink-0"></i><span>${escapeHtml(item.time)}</span>` : ''}
+                </div>
+                ${item.venue ? `
+                <div class="flex items-center gap-2">
+                  <i class="ph-bold ph-map-pin text-rose-500 text-sm shrink-0"></i>
+                  <span class="truncate">${escapeHtml(item.venue)}</span>
+                </div>` : ''}
+              </div>
+
+              <!-- Summary / Raw snippet -->
+              <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                ${escapeHtml(item.summary || item.rawText)}
+              </p>
+            </div>
+
+            <!-- Card Bottom Controls -->
+            <div class="pt-4 mt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+              <button onclick="toggleCardRaw('${item.id}')" class="text-indigo-600 hover:text-indigo-800 font-semibold inline-flex items-center gap-1">
+                <i class="ph ph-chat-text"></i> Raw text
+              </button>
+              <div class="flex items-center gap-1">
+                <button onclick="deleteNotice('${item.id}')" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="Delete notice">
+                  <i class="ph ph-trash text-base"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Expandable Raw Text Dropdown -->
+            <div id="raw-panel-${item.id}" class="hidden mt-3 pt-3 border-t border-slate-100 text-[11px] font-mono text-slate-600 bg-slate-100/70 p-2.5 rounded-lg whitespace-pre-wrap break-words">
+              ${escapeHtml(item.rawText)}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Toggle card raw snippet
+    window.toggleCardRaw = function(id) {
+      const el = document.getElementById(`raw-panel-${id}`);
+      if (el) el.classList.toggle('hidden');
+    };
+
+    // Delete notice
+    window.deleteNotice = function(id) {
+      if (confirm('Are you sure you want to remove this notice?')) {
+        notices = notices.filter(n => n.id !== id);
+        saveState();
+        renderDashboard();
+        showToast('Notice removed');
+      }
+    };
+
+    function formatCardDate(isoDate) {
+      if (!isoDate) return 'Date TBA';
+      try {
+        const d = new Date(isoDate + 'T00:00:00');
+        return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+      } catch (e) {
+        return isoDate;
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // ----------------------------------------------------
+    // Interactive Calendar Logic
+    // ----------------------------------------------------
+    function renderCalendar() {
+      const calGrid = document.getElementById('calendar-grid');
+      const monthYearTitle = document.getElementById('calendar-month-year');
+      
+      const year = calendarDate.getFullYear();
+      const month = calendarDate.getMonth();
+
+      const monthNames = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+      ];
+      monthYearTitle.textContent = `${monthNames[month]} ${year}`;
+
+      // First day of month & number of days
+      const firstDay = new Date(year, month, 1).getDay();
+      const totalDays = new Date(year, month + 1, 0).getDate();
+
+      calGrid.innerHTML = '';
+
+      // Blank slots before day 1
+      for (let i = 0; i < firstDay; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = "h-20 sm:h-24 p-1.5 bg-slate-50/50 rounded-xl border border-dashed border-slate-100 text-slate-300 text-xs";
+        calGrid.appendChild(emptyCell);
+      }
+
+      // Map notices by date string YYYY-MM-DD
+      const dateMap = {};
+      notices.forEach(n => {
+        if (!n.date) return;
+        if (!dateMap[n.date]) dateMap[n.date] = [];
+        dateMap[n.date].push(n);
+      });
+
+      // Populate month days
+      for (let day = 1; day <= totalDays; day++) {
+        const mStr = String(month + 1).padStart(2, '0');
+        const dStr = String(day).padStart(2, '0');
+        const dateKey = `${year}-${mStr}-${dStr}`;
+        const dayEvents = dateMap[dateKey] || [];
+
+        const isToday = (
+          REFERENCE_DATE.getFullYear() === year &&
+          REFERENCE_DATE.getMonth() === month &&
+          REFERENCE_DATE.getDate() === day
+        );
+
+        const isConflictDay = dayEvents.length > 1;
+
+        const cell = document.createElement('div');
+        cell.className = `h-20 sm:h-24 p-1.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between ${
+          isConflictDay ? 'border-amber-400 bg-amber-50/30 ring-1 ring-amber-400/50' :
+          isToday ? 'border-indigo-500 bg-indigo-50/40 font-bold ring-1 ring-indigo-400' : 'border-slate-100 bg-white hover:border-slate-300'
+        }`;
+
+        let eventsHtml = '';
+        if (dayEvents.length > 0) {
+          eventsHtml = dayEvents.slice(0, 2).map(ev => {
+            let dotColor = 'bg-indigo-500';
+            if (ev.category === 'Placement') dotColor = 'bg-blue-500';
+            if (ev.category === 'Cultural') dotColor = 'bg-purple-500';
+            if (ev.category === 'Sports') dotColor = 'bg-emerald-500';
+            return `
+              <div class="truncate text-[10px] leading-tight px-1 py-0.5 rounded bg-slate-100 text-slate-800 flex items-center gap-1 font-medium">
+                <span class="w-1.5 h-1.5 rounded-full ${dotColor} shrink-0"></span>
+                <span class="truncate">${escapeHtml(ev.title)}</span>
+              </div>
+            `;
+          }).join('');
+
+          if (dayEvents.length > 2) {
+            eventsHtml += `<span class="text-[9px] text-indigo-600 font-bold">+${dayEvents.length - 2} more</span>`;
+          }
+        }
+
+        cell.innerHTML = `
+          <div class="flex items-center justify-between text-xs">
+            <span class="${isToday ? 'w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold' : 'text-slate-700 font-medium'}">${day}</span>
+            <div class="flex items-center gap-1">
+              ${isConflictDay ? '<i class="ph-fill ph-warning text-amber-500 text-xs" title="Same-day conflict!"></i>' : ''}
+              ${dayEvents.length > 0 ? `<span class="text-[10px] font-bold ${isConflictDay ? 'text-amber-800 bg-amber-100' : 'text-indigo-600 bg-indigo-100'} px-1 rounded-full">${dayEvents.length}</span>` : ''}
+            </div>
+          </div>
+          <div class="space-y-0.5 overflow-hidden">
+            ${eventsHtml}
+          </div>
+        `;
+
+        cell.addEventListener('click', () => {
+          showCalendarDayDetails(dateKey, dayEvents, day, monthNames[month], year);
+        });
+
+        calGrid.appendChild(cell);
+      }
+    }
+
+    function showCalendarDayDetails(dateKey, events, day, monthName, year) {
+      const container = document.getElementById('calendar-selected-events');
+      const title = document.getElementById('calendar-selected-date-text');
+      const isConflict = events.length > 1;
+
+      title.innerHTML = `Events on ${monthName} ${day}, ${year} (${events.length} item${events.length === 1 ? '' : 's'}) ${isConflict ? '<span class="ml-2 inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full"><i class="ph-bold ph-warning"></i> Conflict Detected</span>' : ''}`;
+
+      if (events.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-100">No events or deadlines recorded for this date. Click "+ Add Notice" to create one.</p>`;
+        return;
+      }
+
+      let conflictHeader = '';
+      if (isConflict) {
+        conflictHeader = `
+          <div class="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-center gap-2">
+            <i class="ph-bold ph-git-merge text-amber-600 text-base"></i>
+            <span><strong>Caution:</strong> Multiple events are scheduled on this day. Please verify timings to prevent clashes.</span>
+          </div>
+        `;
+      }
+
+      container.innerHTML = conflictHeader + events.map(ev => {
+        const status = getNoticeStatus(ev.date);
+        return `
+          <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between gap-3">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                ${getCategoryBadge(ev.category)}
+                <span class="text-xs font-semibold px-2 py-0.5 rounded ${status.badgeColor}">${status.label}</span>
+              </div>
+              <h5 class="text-xs sm:text-sm font-bold text-slate-900">${escapeHtml(ev.title)}</h5>
+              <p class="text-[11px] text-slate-500 mt-0.5">Time: ${ev.time || 'TBA'} • Venue: ${ev.venue || 'TBA'}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ----------------------------------------------------
+    // Smart AI Input Parser Engine (Simulated Natural Language Extraction)
+    // ----------------------------------------------------
+    function runSimulatedAIExtraction(raw) {
+      if (!raw || raw.trim().length === 0) return null;
+
+      // 1. Category heuristics
+      let category = 'Academic';
+      if (/placement|interview|resume|package|ctc|internship|hiring|company|shortlist/i.test(raw)) {
+        category = 'Placement';
+      } else if (/cricket|football|tournament|badminton|sports|match|championship|athletics|game/i.test(raw)) {
+        category = 'Sports';
+      } else if (/cultural|dance|fest|singing|band|dj|concert|audition|oasis|drama|club/i.test(raw)) {
+        category = 'Cultural';
+      } else if (/urgent|emergency|mandatory|strictly|today|tomorrow|warning/i.test(raw)) {
+        category = 'Urgent';
+      }
+
+      // 2. Date heuristics
+      let extractedDate = '2026-11-01'; // Default tomorrow
+      if (/today|tonight/i.test(raw)) {
+        extractedDate = '2026-10-31';
+      } else if (/tomorrow/i.test(raw)) {
+        extractedDate = '2026-11-01';
+      } else {
+        const isoMatch = raw.match(/2026-\d{2}-\d{2}/);
+        const dateMatch = raw.match(/(?:nov|november|dec|december|oct|october)\s+(\d{1,2})(?:st|nd|rd|th)?/i);
+        if (isoMatch) {
+          extractedDate = isoMatch[0];
+        } else if (dateMatch) {
+          const monthStr = dateMatch[0].toLowerCase().startsWith('oct') ? '10' :
+                           dateMatch[0].toLowerCase().startsWith('nov') ? '11' : '12';
+          const dayStr = String(dateMatch[1]).padStart(2, '0');
+          extractedDate = `2026-${monthStr}-${dayStr}`;
+        }
+      }
+
+      // 3. Time heuristics (e.g. 5:00 PM, 11:59 PM, 10 AM)
+      let extractedTime = '10:00 AM';
+      const timeMatch = raw.match(/(\d{1,2}(?::\d{2})?\s*(?:am|pm|AM|PM))/);
+      if (timeMatch) {
+        extractedTime = timeMatch[1].toUpperCase();
+      }
+
+      // 4. Venue heuristics (e.g. at Lab 402, in Audi, Venue: ...)
+      let extractedVenue = 'Campus Main Ground / Online';
+      const venueMatch = raw.match(/(?:venue|at|in|location)\s*[:\-]?\s*([A-Za-z0-9\s,]{4,35})(?:\.|\n|$)/i);
+      if (venueMatch && venueMatch[1]) {
+        extractedVenue = venueMatch[1].trim().replace(/^[:\-\s]+/, '');
+      }
+
+      // 5. Title extraction: strip emojis and take first meaningful sentence/line
+      let lines = raw.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      let extractedTitle = 'Important Campus Notice';
+      if (lines.length > 0) {
+        let cleanFirst = lines[0]
+          .replace(/[🚨🔥🚀🏏🎸📢⚠️*🤖]/g, '')
+          .replace(/^(attention|notice|announcement|reminder|urgent)\s*[:\-]?/i, '')
+          .trim();
+        if (cleanFirst.length > 5) {
+          extractedTitle = cleanFirst.substring(0, 60);
+        } else if (lines.length > 1) {
+          extractedTitle = lines[1].replace(/[🚨🔥🚀🏏🎸📢⚠️*🤖]/g, '').trim().substring(0, 60);
+        }
+      }
+
+      let summary = raw.replace(/[🚨🔥🚀🏏🎸📢⚠️*#🤖]/g, ' ')
+                       .replace(/\s+/g, ' ')
+                       .trim();
+      if (summary.length > 140) summary = summary.substring(0, 137) + '...';
+
+      return {
+        title: extractedTitle,
+        date: extractedDate,
+        time: extractedTime,
+        venue: extractedVenue,
+        category: category,
+        summary: summary
+      };
+    }
+
+    // ----------------------------------------------------
+    // AI Weekly Digest Generator
+    // ----------------------------------------------------
+    function generateWeeklyDigest() {
+      const urgentItems = notices.filter(n => getNoticeStatus(n.date).status === 'Urgent');
+      const upcomingThisWeek = notices.filter(n => {
+        const itemDate = new Date(n.date + 'T23:59:59');
+        const diff = (itemDate - REFERENCE_DATE) / (1000 * 60 * 60 * 24);
+        return diff >= 0 && diff <= 7;
+      });
+
+      document.getElementById('stat-urgent').textContent = urgentItems.length;
+      document.getElementById('stat-week').textContent = upcomingThisWeek.length;
+      document.getElementById('stat-total').textContent = notices.length;
+
+      let html = '';
+
+      if (upcomingThisWeek.length === 0) {
+        html = `<p class="text-slate-600">You have no active commitments or deadlines registered for the upcoming 7 days. Take this time to catch up on coursework or explore personal projects!</p>`;
+      } else {
+        html += `<p class="text-slate-700 font-medium">Here is your tailored executive briefing for the upcoming 7 days across campus:</p>`;
+
+        if (urgentItems.length > 0) {
+          html += `
+            <div class="p-3 bg-rose-50/70 border border-rose-200 rounded-xl space-y-1.5">
+              <div class="flex items-center gap-1.5 text-xs font-bold text-rose-700">
+                <i class="ph-bold ph-warning-circle"></i>
+                <span>Action Required (Next 24-48 Hours):</span>
+              </div>
+              <ul class="list-disc list-inside space-y-1 text-slate-700 text-xs pl-1">
+                ${urgentItems.map(item => `
+                  <li><strong>${escapeHtml(item.title)}</strong> (${item.category}): Scheduled for <em>${formatCardDate(item.date)} at ${item.time || 'End of day'}</em>.</li>
+                `).join('')}
+              </ul>
+            </div>
+          `;
+        }
+
+        const academicOrPlacement = upcomingThisWeek.filter(n => n.category === 'Academic' || n.category === 'Placement');
+        if (academicOrPlacement.length > 0) {
+          html += `
+            <div>
+              <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider mb-1">💼 Academics & Career</h4>
+              <p class="text-xs text-slate-600 leading-relaxed">
+                ${academicOrPlacement.map(n => `Keep an eye on <strong>${escapeHtml(n.title)}</strong> at <em>${n.venue}</em> on ${formatCardDate(n.date)} (${n.time}).`).join(' ')}
+              </p>
+            </div>
+          `;
+        }
+
+        const culturalOrSports = upcomingThisWeek.filter(n => n.category === 'Cultural' || n.category === 'Sports');
+        if (culturalOrSports.length > 0) {
+          html += `
+            <div>
+              <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider mb-1">🎉 Campus Life & Sports</h4>
+              <p class="text-xs text-slate-600 leading-relaxed">
+                ${culturalOrSports.map(n => `Unwind or cheer for your branch in <strong>${escapeHtml(n.title)}</strong> taking place on ${formatCardDate(n.date)} at ${n.venue}.`).join(' ')}
+              </p>
+            </div>
+          `;
+        }
+      }
+
+      digestNarrative.innerHTML = html;
+    }
+
+    // ----------------------------------------------------
+    // Event Listeners
+    // ----------------------------------------------------
+    function setupEventListeners() {
+      // Search input
+      searchInput.addEventListener('input', (e) => {
+        searchQuery = e.target.value;
+        clearSearchBtn.classList.toggle('hidden', searchQuery.length === 0);
+        renderDashboard();
+      });
+
+      clearSearchBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        searchQuery = '';
+        clearSearchBtn.classList.add('hidden');
+        renderDashboard();
+      });
+
+      // Filter chips
+      filterChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+          filterChips.forEach(c => {
+            c.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-600', 'shadow-sm');
+            c.classList.add('bg-white', 'text-slate-700', 'border-slate-200');
+          });
+          chip.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600', 'shadow-sm');
+          chip.classList.remove('bg-white', 'text-slate-700', 'border-slate-200');
+
+          activeFilter = chip.getAttribute('data-category');
+          renderDashboard();
+        });
+      });
+
+      // Set initial chip state
+      const initialChip = document.querySelector('.filter-chip[data-category="ALL"]');
+      if (initialChip) {
+        initialChip.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600', 'shadow-sm');
+      }
+
+      // Sort selection
+      sortSelect.addEventListener('change', (e) => {
+        sortMode = e.target.value;
+        renderDashboard();
+      });
+
+      // View switcher
+      btnViewList.addEventListener('click', () => {
+        currentView = 'list';
+        btnViewList.classList.add('bg-white', 'text-slate-800', 'shadow-sm');
+        btnViewList.classList.remove('text-slate-500');
+        btnViewCalendar.classList.remove('bg-white', 'text-slate-800', 'shadow-sm');
+        btnViewCalendar.classList.add('text-slate-500');
+
+        listView.classList.remove('hidden');
+        calendarView.classList.add('hidden');
+        renderDashboard();
+      });
+
+      btnViewCalendar.addEventListener('click', () => {
+        currentView = 'calendar';
+        btnViewCalendar.classList.add('bg-white', 'text-slate-800', 'shadow-sm');
+        btnViewCalendar.classList.remove('text-slate-500');
+        btnViewList.classList.remove('bg-white', 'text-slate-800', 'shadow-sm');
+        btnViewList.classList.add('text-slate-500');
+
+        calendarView.classList.remove('hidden');
+        listView.classList.add('hidden');
+        renderDashboard();
+      });
+
+      // Calendar month pagination
+      document.getElementById('cal-prev').addEventListener('click', () => {
+        calendarDate.setMonth(calendarDate.getMonth() - 1);
+        renderCalendar();
+      });
+      document.getElementById('cal-next').addEventListener('click', () => {
+        calendarDate.setMonth(calendarDate.getMonth() + 1);
+        renderCalendar();
+      });
+      document.getElementById('cal-today').addEventListener('click', () => {
+        calendarDate = new Date(REFERENCE_DATE);
+        renderCalendar();
+      });
+
+      // Modal open & close
+      const openModal = () => {
+        modalSmartParser.classList.remove('hidden');
+        rawNoticeInput.focus();
+      };
+      const closeModal = () => {
+        modalSmartParser.classList.add('hidden');
+        rawNoticeInput.value = '';
+        previewContainer.classList.add('hidden');
+        modalSave.disabled = true;
+      };
+
+      btnOpenModal.addEventListener('click', openModal);
+      if (btnEmptyAdd) btnEmptyAdd.addEventListener('click', openModal);
+      modalClose.addEventListener('click', closeModal);
+      modalCancel.addEventListener('click', closeModal);
+
+      // View conflict days shortcut from banner
+      const btnViewConflicts = document.getElementById('btn-view-conflict-dates');
+      if (btnViewConflicts) {
+        btnViewConflicts.addEventListener('click', () => {
+          filterChips.forEach(c => {
+            c.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-600', 'shadow-sm');
+            c.classList.add('bg-white', 'text-slate-700', 'border-slate-200');
+          });
+          const conflictChip = document.querySelector('.filter-chip[data-category="CONFLICTS"]');
+          if (conflictChip) {
+            conflictChip.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600', 'shadow-sm');
+            conflictChip.classList.remove('bg-white', 'text-slate-700', 'border-slate-200');
+          }
+          activeFilter = 'CONFLICTS';
+          renderDashboard();
+        });
+      }
+
+      // Check conflict in modal when date input changes
+      function updateModalConflictStatus(dateVal) {
+        const warningBox = document.getElementById('modal-conflict-warning');
+        const warningText = document.getElementById('modal-conflict-text');
+        const conflictingItems = checkConflictsForDate(dateVal);
+
+        if (conflictingItems.length > 0) {
+          warningBox.classList.remove('hidden');
+          warningText.innerHTML = `You already have <strong>${conflictingItems.length} notice(s)</strong> scheduled for ${formatCardDate(dateVal)}:<br>• ${conflictingItems.map(c => `<strong>${escapeHtml(c.title)}</strong> (${c.time || 'Time TBA'})`).join('<br>• ')}`;
+        } else {
+          warningBox.classList.add('hidden');
+        }
+      }
+
+      previewDate.addEventListener('change', (e) => {
+        updateModalConflictStatus(e.target.value);
+      });
+
+      // Sample template injections
+      document.querySelectorAll('.btn-sample-paste').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const type = e.target.getAttribute('data-sample');
+          if (type === 'hackathon') {
+            rawNoticeInput.value = '🚀 *URGENT CS & IT STUDENTS* Final project abstract deadline for DevHacks 2026 is tomorrow Nov 1, 2026 at 5:00 PM in Lab 102. Make sure team registration is submitted online before deadline!';
+          } else if (type === 'exam') {
+            rawNoticeInput.value = '📚 Academic Section Notice: End Semester Mid-term remedial examinations scheduled on Nov 5, 2026 from 10:00 AM at Seminar Hall 1. Mandatory attendance for roll numbers 01 to 120.';
+          } else if (type === 'placement') {
+            rawNoticeInput.value = '💼 *T&P CELL UPDATE*: Morgan Stanley pre-placement technical talk today at 4:30 PM in the Main Auditorium. Formal attire compulsory!';
+          }
+        });
+      });
+
+      // AI Parsing Trigger
+      btnParseAI.addEventListener('click', () => {
+        const text = rawNoticeInput.value.trim();
+        if (!text) {
+          alert('Please enter or paste notice text first!');
+          return;
+        }
+
+        aiLoading.classList.remove('hidden');
+        previewContainer.classList.add('hidden');
+        modalSave.disabled = true;
+
+        setTimeout(() => {
+          const parsed = runSimulatedAIExtraction(text);
+          aiLoading.classList.add('hidden');
+          if (parsed) {
+            previewTitle.value = parsed.title;
+            previewDate.value = parsed.date;
+            previewTime.value = parsed.time;
+            previewVenue.value = parsed.venue;
+            previewCategory.value = parsed.category;
+            previewDesc.value = parsed.summary;
+
+            updateModalConflictStatus(parsed.date);
+
+            previewContainer.classList.remove('hidden');
+            modalSave.disabled = false;
+          }
+        }, 500);
+      });
+
+      // Modal Save Notice
+      modalSave.addEventListener('click', () => {
+        const newNotice = {
+          id: 'notice-' + Date.now(),
+          title: previewTitle.value.trim() || 'Untitled Notice',
+          date: previewDate.value || '2026-11-01',
+          time: previewTime.value.trim() || 'All Day',
+          venue: previewVenue.value.trim() || 'Campus',
+          category: previewCategory.value,
+          summary: previewDesc.value.trim() || previewTitle.value.trim(),
+          rawText: rawNoticeInput.value.trim()
+        };
+
+        notices.unshift(newNotice);
+        saveState();
+        renderDashboard();
+        closeModal();
+        showToast('Smart Notice added to board!');
+      });
+
+      // Weekly Digest Modal
+      btnWeeklyDigest.addEventListener('click', () => {
+        generateWeeklyDigest();
+        modalDigest.classList.remove('hidden');
+      });
+
+      const closeDigest = () => modalDigest.classList.add('hidden');
+      modalDigestClose.addEventListener('click', closeDigest);
+      modalDigestDismiss.addEventListener('click', closeDigest);
+
+      // Copy digest
+      btnCopyDigest.addEventListener('click', () => {
+        const textToCopy = digestNarrative.innerText;
+        navigator.clipboard.writeText(textToCopy).then(() => {
+          const original = document.getElementById('copy-text').textContent;
+          document.getElementById('copy-text').textContent = 'Copied!';
+          setTimeout(() => {
+            document.getElementById('copy-text').textContent = original;
+          }, 2000);
+        });
+      });
+
+      // Close modals on Esc key
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          modalSmartParser.classList.add('hidden');
+          modalDigest.classList.add('hidden');
+        }
+      });
+    }
+
+    // Launch
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
